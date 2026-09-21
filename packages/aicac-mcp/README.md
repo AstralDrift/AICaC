@@ -23,6 +23,8 @@ All tools default to dry-run mode (`apply: false`) for safety.
 
 ## Installation
 
+The package includes all necessary assets (schemas, skills, scripts) and works standalone without requiring the full monorepo checkout.
+
 ### Via uvx (recommended)
 
 ```bash
@@ -40,6 +42,14 @@ pip install git+https://github.com/eFAILution/AICaC#subdirectory=packages/aicac-
 ```bash
 cd packages/aicac-mcp
 pip install -e .
+```
+
+### Environment override
+
+For development with a monorepo checkout, set `AICAC_REPO_ROOT` to use live schemas/scripts instead of packaged copies:
+
+```bash
+export AICAC_REPO_ROOT=/path/to/AICaC
 ```
 
 ## Usage
@@ -191,6 +201,7 @@ See [`validation/docs/mcp-server-design.md`](../../validation/docs/mcp-server-de
 
 ## Limitations
 
+- **Standalone packaging** — all required assets (schemas, skills, scripts) are vendored in `data/` subdirectories. No monorepo checkout required. (Addresses [#22](https://github.com/eFAILution/AICaC/issues/22))
 - **Local filesystem only** — no remote/HTTP transport (see design doc rationale)
 - **Dry-run default** — all write operations require explicit `apply: true`
 - **No PyPI publish yet** — install via git URL until first stable release

@@ -49,7 +49,7 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [tool.setuptools.package-data]
-aicac_mcp = ["skills/*.md", "spec/v2/*.json"]
+aicac_mcp = ["data/schemas/*.json", "data/skills/*.md", "data/scripts/*.py"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -17,13 +17,10 @@ from mcp.server.stdio import stdio_server
 from mcp import types
 
 from . import tools
+from . import assets
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("aicac-mcp")
-
-REPO_ROOT = Path(__file__).resolve().parents[4]
-SCHEMA_DIR = REPO_ROOT / "spec" / "v2"
-SKILLS_DIR = REPO_ROOT / ".claude" / "skills" / "aicac"
 
 
 async def handle_list_resources(ctx, params) -> types.ListResourcesResult:
@@ -72,40 +69,53 @@ async def handle_read_resource(ctx, params: types.ReadResourceRequestParams) -> 
     """Read a specific AICaC resource."""
     uri = params.uri
     
-    if uri.startswith("aicac://spec/v2/"):
-        schema_file = uri.replace("aicac://spec/v2/", "")
-        schema_path = SCHEMA_DIR / schema_file
+    try:
+        if uri.startswith("aicac://spec/v2/"):
+            schema_file = uri.replace("aicac://spec/v2/", "")
+            schema_dir = assets.get_schemas_dir()
+            schema_path = schema_dir / schema_file
+            
+            if not schema_path.exists():
+                raise ValueError(f"Schema not found: {schema_file}")
+            
+            content = schema_path.read_text()
+            return types.ReadResourceResult(
+                contents=[types.TextResourceContents(
+                    uri=uri,
+                    mimeType="application/json",
+                    text=content,
+                )]
+            )
         
-        if not schema_path.exists():
-            raise ValueError(f"Schema not found: {schema_file}")
+        elif uri.startswith("aicac://skill/"):
+            skill_name = uri.replace("aicac://skill/", "")
+            skills_dir = assets.get_skills_dir()
+            skill_path = skills_dir / f"{skill_name}.md"
+            
+            if not skill_path.exists():
+                raise ValueError(f"Skill not found: {skill_name}")
+            
+            content = skill_path.read_text()
+            return types.ReadResourceResult(
+                contents=[types.TextResourceContents(
+                    uri=uri,
+                    mimeType="text/markdown",
+                    text=content,
+                )]
+            )
         
-        content = schema_path.read_text()
+        else:
+            raise ValueError(f"Unknown resource URI: {uri}")
+    
+    except FileNotFoundError as e:
+        # Return error as resource content
         return types.ReadResourceResult(
             contents=[types.TextResourceContents(
                 uri=uri,
-                mimeType="application/json",
-                text=content,
+                mimeType="text/plain",
+                text=f"Resource unavailable: {e}",
             )]
         )
-    
-    elif uri.startswith("aicac://skill/"):
-        skill_name = uri.replace("aicac://skill/", "")
-        skill_path = SKILLS_DIR / f"{skill_name}.md"
-        
-        if not skill_path.exists():
-            raise ValueError(f"Skill not found: {skill_name}")
-        
-        content = skill_path.read_text()
-        return types.ReadResourceResult(
-            contents=[types.TextResourceContents(
-                uri=uri,
-                mimeType="text/markdown",
-                text=content,
-            )]
-        )
-    
-    else:
-        raise ValueError(f"Unknown resource URI: {uri}")
 
 
 async def handle_list_tools(ctx, params) -> types.ListToolsResult:
