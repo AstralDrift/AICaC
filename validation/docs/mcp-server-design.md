@@ -1,7 +1,7 @@
 # AICaC MCP server — design sketch
 
-Design for a cross-platform AICaC MCP server. Status: **draft, not
-implemented**. Companion to `in-harness-eval-protocol.md`.
+Design for a cross-platform AICaC MCP server. Status: **MVP implemented** (see
+`packages/aicac-mcp/`). Companion to `in-harness-eval-protocol.md`.
 
 ## Goal
 
@@ -376,3 +376,51 @@ Without the MCP server, the procedural knowledge that lives in
 `.claude/skills/aicac/*.md` only reaches Claude Code. With it, the same
 content reaches every MCP-capable client — and no new adapter is needed
 as new tools come online.
+
+## Implementation notes (v2.0 MVP)
+
+**Delivered** (see `packages/aicac-mcp/`):
+
+- All 5 tools (`validate`, `bootstrap`, `generate_index`, `migrate`,
+  `sync_suggest`), defined as typed functions on the SDK's `MCPServer`. The
+  SDK builds the input schemas from the signatures and rejects calls that
+  don't match before any tool code runs; `apply` and `strict` must be JSON
+  booleans.
+- Schema resources (`aicac://spec/v2/*.schema.json`, 6 files) and skill
+  resources (`aicac://skill/{router,bootstrap,validate,sync,migrate}`),
+  registered as exact URIs. Anything not listed fails with "Unknown resource".
+- Stdio transport via the official `mcp` Python SDK (2.x).
+- Dry-run by default; write tools only touch disk with `apply: true`.
+- `project_path` must be an existing directory. An empty string is rejected
+  rather than treated as the working directory; pass `.` for that. Failures
+  are returned as MCP tool errors (`isError: true`). YAML and IO errors
+  include the file path.
+- Schemas, skills, and scripts vendored into the package so it installs
+  standalone; a test fails if any copy drifts from its source in this repo.
+- Tests drive the server through an MCP client session (in memory, plus one
+  test over stdio) and run in CI (`AICaC Adoption` → `MCP Server Tests`) on
+  Python 3.10–3.12.
+
+**Differences from the design above:**
+
+- `aicac_bootstrap` writes only `.ai/context.yaml` and `.ai/README.md` with
+  TODO placeholders. It does not emit `AGENTS.md` or `.ai/index.yaml`, and
+  there is no `compliance_level` option. It never overwrites: existing files
+  are left alone and reported in `files_skipped`. If `.ai` is a symlink,
+  bootstrap returns an error and does not follow it.
+- `aicac_sync_suggest` needs a git work tree when `changed_files` is omitted;
+  otherwise it returns an error asking for `changed_files`. The error
+  includes one line from git, not git's usage text.
+- Prompts `aicac:router`, `aicac:bootstrap`, `aicac:sync` are not
+  implemented. The same text is available as the `aicac://skill/*` resources.
+- Resources `aicac://spec/behavior.md`, `aicac://project/index`,
+  `aicac://project/summaries` are not implemented.
+- `aicac_migrate` dry-run returns a per-file list of operations, not a
+  unified diff.
+- `aicac_validate` returns flat `errors`/`warnings` lists rather than separate
+  `schema_violations`, `cross_ref_issues`, and `content_quality` fields.
+
+**Future work:**
+
+- PyPI publication (install via git URL until then)
+- Registry listings (Anthropic, Cursor, Continue, Windsurf)

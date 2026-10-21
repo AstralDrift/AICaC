@@ -5,6 +5,12 @@
 # length there is churn without risk reduction, so E501 is ignored for
 # that tree. Real defects (pyflakes F-codes, etc.) stay enforced.
 max-line-length = 100
+# packages/aicac-mcp/.../data/scripts are verbatim copies of
+# .github/actions/aicac-adoption/scripts (kept in sync by
+# packages/aicac-mcp/tests/test_vendored_sync.py). Lint the originals, not
+# the copies.
+extend-exclude =
+    packages/aicac-mcp/src/aicac_mcp/data/scripts
 per-file-ignores =
     validation/scripts/*: E501
     validation/scripts/tests/*: E501, E402

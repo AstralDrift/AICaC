@@ -44,6 +44,34 @@ jobs:
       - name: Run validation tests
         run: pytest validation/scripts/tests/ -v --no-header -o "addopts="
 
+  mcp:
+    name: MCP Server Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package
+        run: pip install -e 'packages/aicac-mcp[dev]' flake8
+
+      - name: Lint package
+        run: flake8 packages/aicac-mcp
+
+      - name: Run package tests
+        working-directory: packages/aicac-mcp
+        run: pytest -v --no-header
+
   integration:
     name: Action Integration Test
     runs-on: ubuntu-latest
